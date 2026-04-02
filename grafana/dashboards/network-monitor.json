@@ -301,7 +301,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "mi_router_device_downspeed{name!=\"Others\"}",
-          "legendFormat": "{{name}} ({{mac}})",
+          "legendFormat": "{{name}} - {{ip}} ({{mac}})",
           "refId": "A"
         }
       ],
@@ -358,7 +358,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "mi_router_device_upspeed{name!=\"Others\"}",
-          "legendFormat": "{{name}} ({{mac}})",
+          "legendFormat": "{{name}} - {{ip}} ({{mac}})",
           "refId": "A"
         }
       ],
@@ -414,13 +414,13 @@
         {
           "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "mi_router_device_downspeed{name!=\"Others\"}",
-          "legendFormat": "⬇ {{name}}",
+          "legendFormat": "⬇ {{name}} ({{ip}})",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "mi_router_device_upspeed{name!=\"Others\"}",
-          "legendFormat": "⬆ {{name}}",
+          "legendFormat": "⬆ {{name}} ({{ip}})",
           "refId": "B"
         }
       ],
@@ -462,7 +462,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "topk(10, mi_router_device_download{name!=\"Others\"})",
-          "legendFormat": "{{name}}",
+          "legendFormat": "{{name}} ({{ip}})",
           "refId": "A"
         }
       ],
@@ -504,7 +504,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
           "expr": "topk(10, mi_router_device_upload{name!=\"Others\"})",
-          "legendFormat": "{{name}}",
+          "legendFormat": "{{name}} ({{ip}})",
           "refId": "A"
         }
       ],

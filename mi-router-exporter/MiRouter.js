@@ -62,6 +62,14 @@ class MiRouter {
         });
     }
 
+    async getDeviceList() {
+        return request({
+            url: `http://${this.url}/cgi-bin/luci/;stok=${this.token}/api/misystem/devicelist`,
+            json: true,
+            timeout: 5000,
+        });
+    }
+
     async status() {
         if (!this.token) {
             logger.warn('No token set, logging in.');
@@ -70,7 +78,35 @@ class MiRouter {
 
         try {
             logger.info('Fetching status...');
-            return await this.getStatus();
+            const statusData = await this.getStatus();
+            
+            // Try to enrich device data with IP addresses from devicelist
+            try {
+                const deviceListData = await this.getDeviceList();
+                const ipMap = {};
+                if (deviceListData && deviceListData.list) {
+                    for (const dev of deviceListData.list) {
+                        if (dev.mac && dev.ip && dev.ip.length > 0) {
+                            ipMap[dev.mac.toUpperCase()] = dev.ip[0].ip || '';
+                        }
+                    }
+                }
+                // Merge IPs into status dev array
+                if (statusData.dev) {
+                    for (const dev of statusData.dev) {
+                        dev._ip = ipMap[dev.mac ? dev.mac.toUpperCase() : ''] || '';
+                    }
+                }
+            } catch (ipErr) {
+                logger.warn({ err: ipErr }, 'Could not fetch device list for IPs, continuing without IPs');
+                if (statusData.dev) {
+                    for (const dev of statusData.dev) {
+                        dev._ip = '';
+                    }
+                }
+            }
+            
+            return statusData;
         } catch (err) {
             logger.error({ err }, 'Error fetching status, re-logging in...');
             await this.login();
