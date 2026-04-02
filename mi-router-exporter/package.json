@@ -1,0 +1,21 @@
+{
+  "name": "mi-router-exporter",
+  "version": "1.1.0",
+  "description": "Custom Mi Router Exporter with IP label support",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bunyan": "^1.8.15",
+    "ejs": "^3.1.6",
+    "express": "^4.17.2",
+    "getmac": "^5.20.0",
+    "morgan": "^1.10.0",
+    "request": "^2.88.2",
+    "request-promise-native": "^1.0.9"
+  }
+}

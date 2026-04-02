@@ -36,7 +36,7 @@ services:
       - monitor-net
 
   mi-router-exporter:
-    build: https://github.com/serge1peshcoff/mi-router-exporter.git
+    build: ./mi-router-exporter
     container_name: mi-router-exporter
     environment:
       - URL=192.168.31.1
