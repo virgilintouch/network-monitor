@@ -38,7 +38,7 @@ services:
     container_name: mi-router-exporter
     environment:
       - URL=192.168.31.1
-      - PASSWORD=<YOUR_ROUTER_PASSWORD>
+      - PASSWORD=Dracula2015!
     ports:
       - "3030:3030"
     restart: unless-stopped
