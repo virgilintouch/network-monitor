@@ -97,8 +97,11 @@ class MiRouter {
                         dev._ip = ipMap[dev.mac ? dev.mac.toUpperCase() : ''] || '';
                     }
                 }
+                // attach devicelist for full list access
+                statusData.deviceList = deviceListData.list || [];
             } catch (ipErr) {
                 logger.warn({ err: ipErr }, 'Could not fetch device list for IPs, continuing without IPs');
+                statusData.deviceList = [];
                 if (statusData.dev) {
                     for (const dev of statusData.dev) {
                         dev._ip = '';

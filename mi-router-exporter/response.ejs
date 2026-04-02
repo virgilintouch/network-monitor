@@ -84,3 +84,8 @@ mi_router_wan_maxupspeed <%= stats.wan.maxuploadspeed %>
 # TYPE mi_router_device_online gauge
 <% for (const device of stats.dev) { %>mi_router_device_online{mac="<%= device.mac %>", name="<%= device.devname %>", ip="<%= device._ip || '' %>"} <%= device.online %>
 <% } %>
+
+# HELP mi_router_device_info Full device list info
+# TYPE mi_router_device_info gauge
+<% for (const device of (stats.deviceList || [])) { %>mi_router_device_info{mac="<%= device.mac %>", name="<%= device.name %>", ip="<%= device.ip && device.ip.length > 0 ? device.ip[0].ip : '' %>", online="<%= device.online %>", isap="<%= device.isap %>", authority_wan="<%= device.authority && device.authority.wan %>"} 1
+<% } %>

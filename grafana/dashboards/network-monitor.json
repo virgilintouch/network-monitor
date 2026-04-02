@@ -12,6 +12,13 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "fixed", "fixedColor": "#6C63FF" },
+          "links": [
+            {
+              "title": "查看在线设备清单",
+              "url": "/d/device-list/device-list?viewPanel=1",
+              "targetBlank": false
+            }
+          ],
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -52,6 +59,13 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "fixed", "fixedColor": "#8B5CF6" },
+          "links": [
+            {
+              "title": "查看全部历史与在线设备清单",
+              "url": "/d/device-list/device-list?viewPanel=2",
+              "targetBlank": false
+            }
+          ],
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
