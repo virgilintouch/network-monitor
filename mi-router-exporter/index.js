@@ -35,5 +35,6 @@ server.get('/debug', async (req, res) => {
 });
 
 const port = 3030;
-logger.info(`Server listening to ${port}, metrics exposed on /metrics endpoint`);
-server.listen(port);
+const host = '0.0.0.0';
+logger.info(`Server listening to ${host}:${port}, metrics exposed on /metrics endpoint`);
+server.listen(port, host);
