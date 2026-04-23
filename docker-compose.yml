@@ -34,7 +34,7 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     ports:
-      - "0.0.0.0:3000:3000"
+      - "0.0.0.0:3344:3000"
     restart: unless-stopped
     networks:
       - monitor-net
