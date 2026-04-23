@@ -56,7 +56,7 @@ network-monitor/
 ### 3. 一键启动服务
 在终端执行：
 ```bash
-cd "/Users/virgil/Desktop/Test project/network-monitor"
+cd "/Users/virgil/Documents/Test project/network-monitor"
 docker-compose up -d
 ```
 启动系统。
