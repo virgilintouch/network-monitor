@@ -46,7 +46,7 @@ class MiRouter {
                 logtype: 2,
                 nonce
             },
-            timeout: 5000,
+            timeout: 15000,
         });
 
         this.loginResponse = response;
@@ -58,7 +58,7 @@ class MiRouter {
         return request({
             url: `http://${this.url}/cgi-bin/luci/;stok=${this.token}/api/misystem/status`,
             json: true,
-            timeout: 5000,
+            timeout: 15000,
         });
     }
 
@@ -66,7 +66,7 @@ class MiRouter {
         return request({
             url: `http://${this.url}/cgi-bin/luci/;stok=${this.token}/api/misystem/devicelist`,
             json: true,
-            timeout: 5000,
+            timeout: 15000,
         });
     }
 
