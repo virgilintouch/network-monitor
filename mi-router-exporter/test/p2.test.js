@@ -90,3 +90,41 @@ test('stale planning docs are archived or removed from the project root', () => 
     const files = fs.readdirSync(docsDir);
     assert.ok(files.some((name) => name.includes('ops') || name.includes('history')));
 });
+
+test('logger emits structured JSON without Bunyan', () => {
+    const loggerPath = require.resolve('../logger');
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalLogLevel = process.env.LOGLEVEL;
+    const lines = [];
+
+    console.log = (line) => lines.push(line);
+    console.error = (line) => lines.push(line);
+    process.env.LOGLEVEL = 'info';
+    delete require.cache[loggerPath];
+
+    try {
+        const logger = require('../logger');
+        logger.info({ router: '192.168.31.1' }, 'Router login successful');
+
+        assert.equal(lines.length, 1);
+        assert.deepEqual(JSON.parse(lines[0]), {
+            name: 'mi-router-exporter',
+            level: 'info',
+            msg: 'Router login successful',
+            router: '192.168.31.1',
+        });
+
+        const packageInfo = JSON.parse(fs.readFileSync(path.join(exporterDir, 'package.json'), 'utf8'));
+        assert.equal(packageInfo.dependencies.bunyan, undefined);
+    } finally {
+        console.log = originalLog;
+        console.error = originalError;
+        if (originalLogLevel === undefined) {
+            delete process.env.LOGLEVEL;
+        } else {
+            process.env.LOGLEVEL = originalLogLevel;
+        }
+        delete require.cache[loggerPath];
+    }
+});

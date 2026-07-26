@@ -183,11 +183,11 @@ class MiRouter {
         } catch (err) {
             logger.error({ err: err.message }, 'Error fetching status, re-logging in...');
             csvlog.error('Status fetch failed, re-login', { error: err.message });
-            
+
             this.token = null;
             this.tokenExpiry = null;
             await this.login();
-            
+
             logger.info('Fetching status after relogin...');
             return this.fetchStatusWithDevices();
         }
