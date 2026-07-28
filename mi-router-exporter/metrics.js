@@ -1,3 +1,5 @@
+const { normalizeMac, formatDisplayName } = require('./displayName');
+
 function escapeLabelValue(value) {
     return String(value ?? '')
         .replace(/\\/g, '\\\\')
@@ -10,22 +12,40 @@ function metricValue(value) {
     return Number.isFinite(num) ? String(num) : '0';
 }
 
-function deviceLabels(device) {
-    return `mac="${escapeLabelValue(device.mac || '')}",name="${escapeLabelValue(device.devname || device.name || '')}",ip="${escapeLabelValue(device._ip || '')}"`;
+function lookupAlias(aliases, mac) {
+    if (!aliases || typeof aliases !== 'object') {
+        return '';
+    }
+    try {
+        const key = normalizeMac(mac);
+        const record = aliases[key];
+        return record && typeof record === 'object' ? record.alias : '';
+    } catch {
+        return '';
+    }
 }
 
-function renderDeviceMetric(name, help, type, devices, field) {
+function deviceLabels(device, aliases = {}) {
+    const routerName = device.devname || device.name || '';
+    const displayName = formatDisplayName({
+        routerName,
+        alias: lookupAlias(aliases, device.mac),
+    });
+    return `mac="${escapeLabelValue(device.mac || '')}",name="${escapeLabelValue(displayName)}",ip="${escapeLabelValue(device._ip || '')}",router_name="${escapeLabelValue(routerName)}"`;
+}
+
+function renderDeviceMetric(name, help, type, devices, field, aliases = {}) {
     const lines = [
         `# HELP ${name} ${help}`,
         `# TYPE ${name} ${type}`,
     ];
     for (const device of devices) {
-        lines.push(`${name}{${deviceLabels(device)}} ${metricValue(device[field])}`);
+        lines.push(`${name}{${deviceLabels(device, aliases)}} ${metricValue(device[field])}`);
     }
     return lines.join('\n');
 }
 
-function render(stats = {}, self = {}) {
+function render(stats = {}, self = {}, aliases = {}) {
     const devices = Array.isArray(stats.dev) ? stats.dev : [];
     const deviceList = Array.isArray(stats.deviceList) ? stats.deviceList : [];
     const mem = stats.mem || {};
@@ -94,13 +114,13 @@ function render(stats = {}, self = {}) {
             '# TYPE mi_router_wan_max_upspeed gauge',
             `mi_router_wan_max_upspeed ${metricValue(wan.maxuploadspeed)}`,
         ].join('\n'),
-        renderDeviceMetric('mi_router_device_upload', 'Router device upload', 'gauge', devices, 'upload'),
-        renderDeviceMetric('mi_router_device_download', 'Router device download', 'gauge', devices, 'download'),
-        renderDeviceMetric('mi_router_device_upspeed', 'Router device upspeed', 'gauge', devices, 'upspeed'),
-        renderDeviceMetric('mi_router_device_downspeed', 'Router device downspeed', 'gauge', devices, 'downspeed'),
-        renderDeviceMetric('mi_router_device_max_upspeed', 'Router device max upload speed', 'gauge', devices, 'maxuploadspeed'),
-        renderDeviceMetric('mi_router_device_max_downspeed', 'Router device max download speed', 'gauge', devices, 'maxdownloadspeed'),
-        renderDeviceMetric('mi_router_device_online', 'Router device online', 'gauge', devices, 'online'),
+        renderDeviceMetric('mi_router_device_upload', 'Router device upload', 'gauge', devices, 'upload', aliases),
+        renderDeviceMetric('mi_router_device_download', 'Router device download', 'gauge', devices, 'download', aliases),
+        renderDeviceMetric('mi_router_device_upspeed', 'Router device upspeed', 'gauge', devices, 'upspeed', aliases),
+        renderDeviceMetric('mi_router_device_downspeed', 'Router device downspeed', 'gauge', devices, 'downspeed', aliases),
+        renderDeviceMetric('mi_router_device_max_upspeed', 'Router device max upload speed', 'gauge', devices, 'maxuploadspeed', aliases),
+        renderDeviceMetric('mi_router_device_max_downspeed', 'Router device max download speed', 'gauge', devices, 'maxdownloadspeed', aliases),
+        renderDeviceMetric('mi_router_device_online', 'Router device online', 'gauge', devices, 'online', aliases),
     ];
 
     const infoLines = [
@@ -110,8 +130,13 @@ function render(stats = {}, self = {}) {
     for (const device of deviceList) {
         const ip = device.ip && device.ip.length > 0 ? device.ip[0].ip : '';
         const authorityWan = device.authority && device.authority.wan;
+        const routerName = device.name || '';
+        const displayName = formatDisplayName({
+            routerName,
+            alias: lookupAlias(aliases, device.mac),
+        });
         infoLines.push(
-            `mi_router_device_info{mac="${escapeLabelValue(device.mac || '')}",name="${escapeLabelValue(device.name || '')}",ip="${escapeLabelValue(ip || '')}",online="${escapeLabelValue(device.online)}",isap="${escapeLabelValue(device.isap)}",authority_wan="${escapeLabelValue(authorityWan)}"} 1`
+            `mi_router_device_info{mac="${escapeLabelValue(device.mac || '')}",name="${escapeLabelValue(displayName)}",ip="${escapeLabelValue(ip || '')}",online="${escapeLabelValue(device.online)}",isap="${escapeLabelValue(device.isap)}",authority_wan="${escapeLabelValue(authorityWan)}",router_name="${escapeLabelValue(routerName)}"} 1`
         );
     }
     sections.push(infoLines.join('\n'));

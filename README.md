@@ -149,3 +149,13 @@ When changing service exposure, authentication defaults, or health checks, updat
 ## License
 
 ISC
+
+## Device aliases
+
+Open the local management page at <http://localhost:3030/aliases> to assign custom display names by MAC address.
+
+- Aliases are stored in `./data/device-aliases.json` on the host (mounted into the exporter container).
+- Custom names survive `docker compose up -d --build` as long as the `./data` mount remains.
+- Grafana shows `alias (router_name)` when an alias exists; otherwise it shows the router-provided name.
+- Changing a device name creates a new Prometheus time series identity, so historical graphs may look discontinuous around the rename.
+

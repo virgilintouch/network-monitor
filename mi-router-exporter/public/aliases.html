@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Device Aliases</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; color: #1f2937; }
+    h1 { margin-bottom: 8px; }
+    p { color: #4b5563; }
+    table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+    th, td { border: 1px solid #d1d5db; padding: 8px 10px; text-align: left; vertical-align: middle; }
+    th { background: #f3f4f6; }
+    input[type="text"] { width: 100%; max-width: 220px; padding: 6px 8px; }
+    button { margin-right: 6px; padding: 6px 10px; cursor: pointer; }
+    .status { margin-top: 12px; min-height: 1.2em; }
+    .error { color: #b91c1c; }
+    .ok { color: #047857; }
+  </style>
+</head>
+<body>
+  <h1>设备别名管理</h1>
+  <p>为局域网设备设置自定义显示名。保存后 Prometheus/Grafana 会显示为「自定义名 (路由器原名)」。</p>
+  <div id="status" class="status"></div>
+  <table>
+    <thead>
+      <tr>
+        <th>MAC</th>
+        <th>IP</th>
+        <th>在线</th>
+        <th>路由器原名</th>
+        <th>别名</th>
+        <th>显示预览</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="devices"></tbody>
+  </table>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const tbody = document.getElementById('devices');
+
+    function setStatus(message, ok) {
+      statusEl.textContent = message || '';
+      statusEl.className = 'status ' + (ok ? 'ok' : 'error');
+    }
+
+    function preview(routerName, alias) {
+      const trimmed = String(alias || '').trim();
+      if (trimmed) return trimmed + ' (' + (routerName || 'unknown') + ')';
+      return routerName || '';
+    }
+
+    function renderDevices(devices) {
+      tbody.innerHTML = '';
+      for (const device of devices) {
+        const tr = document.createElement('tr');
+        tr.dataset.mac = device.mac;
+
+        const macTd = document.createElement('td');
+        macTd.textContent = device.mac || '';
+        tr.appendChild(macTd);
+
+        const ipTd = document.createElement('td');
+        ipTd.textContent = device.ip || '';
+        tr.appendChild(ipTd);
+
+        const onlineTd = document.createElement('td');
+        onlineTd.textContent = device.online ? '在线' : '离线';
+        tr.appendChild(onlineTd);
+
+        const nameTd = document.createElement('td');
+        nameTd.textContent = device.routerName || '';
+        tr.appendChild(nameTd);
+
+        const aliasTd = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = device.alias || '';
+        input.placeholder = '自定义名';
+        input.addEventListener('input', () => {
+          previewTd.textContent = preview(device.routerName, input.value);
+        });
+        aliasTd.appendChild(input);
+        tr.appendChild(aliasTd);
+
+        const previewTd = document.createElement('td');
+        previewTd.textContent = device.displayName || preview(device.routerName, device.alias);
+        tr.appendChild(previewTd);
+
+        const actionsTd = document.createElement('td');
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = '保存';
+        saveBtn.addEventListener('click', async () => {
+          try {
+            const res = await fetch('/api/aliases/' + encodeURIComponent(device.mac), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ alias: input.value }),
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(body.error || ('HTTP ' + res.status));
+            input.value = body.alias || input.value.trim();
+            previewTd.textContent = preview(device.routerName, input.value);
+            setStatus('已保存 ' + device.mac, true);
+          } catch (err) {
+            setStatus('保存失败: ' + err.message, false);
+          }
+        });
+
+        const clearBtn = document.createElement('button');
+        clearBtn.textContent = '清除';
+        clearBtn.addEventListener('click', async () => {
+          try {
+            const res = await fetch('/api/aliases/' + encodeURIComponent(device.mac), {
+              method: 'DELETE',
+            });
+            if (!res.ok && res.status !== 204) {
+              const body = await res.json().catch(() => ({}));
+              throw new Error(body.error || ('HTTP ' + res.status));
+            }
+            input.value = '';
+            previewTd.textContent = preview(device.routerName, '');
+            setStatus('已清除 ' + device.mac, true);
+          } catch (err) {
+            setStatus('清除失败: ' + err.message, false);
+          }
+        });
+
+        actionsTd.appendChild(saveBtn);
+        actionsTd.appendChild(clearBtn);
+        tr.appendChild(actionsTd);
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function loadDevices() {
+      setStatus('加载中...', true);
+      try {
+        const res = await fetch('/api/devices');
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || ('HTTP ' + res.status));
+        const devices = Array.isArray(body) ? body : (body.devices || []);
+        renderDevices(devices);
+        setStatus('已加载 ' + devices.length + ' 台设备', true);
+      } catch (err) {
+        setStatus('加载失败: ' + err.message, false);
+      }
+    }
+
+    loadDevices();
+  </script>
+</body>
+</html>

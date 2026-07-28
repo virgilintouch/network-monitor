@@ -149,3 +149,13 @@ curl -fsS http://localhost:3030/metrics | grep '^mi_router'
 ## 许可证
 
 ISC
+
+## 设备自定义名称
+
+打开本地管理页 <http://localhost:3030/aliases>，按 MAC 地址为设备设置自定义显示名。
+
+- 别名保存在主机上的 `./data/device-aliases.json`（已挂载进 exporter 容器）。
+- 只要保留 `./data` 挂载，执行 `docker compose up -d --build` 后自定义名仍会保留。
+- Grafana 有别名时显示 `自定义名 (路由器原名)`；没有别名时显示路由器原名。
+- 修改设备名会形成新的 Prometheus 时间序列，历史曲线在改名附近可能看起来不连续。
+

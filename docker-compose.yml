@@ -66,6 +66,7 @@ services:
       - "127.0.0.1:3030:3030"
     volumes:
       - ./logs:/usr/src/app/logs
+      - ./data:/usr/src/app/data
     extra_hosts:
       - "router:192.168.31.1"
     healthcheck:
