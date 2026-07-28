@@ -4,8 +4,20 @@
 
 这是一个面向小米路由器的家庭网络监控栈。导出器调用路由器 API，Prometheus 存储采集到的指标，Grafana 用于展示仪表盘。
 
-```text
-小米路由器 -> mi-router-exporter -> Prometheus -> Grafana
+```mermaid
+flowchart LR
+    router["小米路由器<br/>(管理 API)"]
+    exporter["mi-router-exporter<br/>(Node.js 采集器, :3030)"]
+    prom["Prometheus<br/>(时序数据库, :9090)"]
+    grafana["Grafana<br/>(可视化看板, :3344)"]
+    aliases["设备别名 UI<br/>(/aliases)"]
+    data[("data/device-aliases.json")]
+
+    router -- "登录 + 拉取 status/devicelist" --> exporter
+    exporter -- "/metrics (每 30 秒抓取)" --> prom
+    prom -- "PromQL 查询" --> grafana
+    aliases --> exporter
+    exporter <--> data
 ```
 
 ## 第一部分：使用者指南
@@ -158,4 +170,3 @@ ISC
 - 只要保留 `./data` 挂载，执行 `docker compose up -d --build` 后自定义名仍会保留。
 - Grafana 有别名时显示 `自定义名 (路由器原名)`；没有别名时显示路由器原名。
 - 修改设备名会形成新的 Prometheus 时间序列，历史曲线在改名附近可能看起来不连续。
-

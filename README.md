@@ -4,8 +4,20 @@
 
 A home-network monitoring stack for Xiaomi routers. The exporter queries the router API, Prometheus stores the collected metrics, and Grafana provides dashboards.
 
-```text
-Xiaomi Router -> mi-router-exporter -> Prometheus -> Grafana
+```mermaid
+flowchart LR
+    router["Xiaomi Router<br/>(management API)"]
+    exporter["mi-router-exporter<br/>(Node.js, :3030)"]
+    prom["Prometheus<br/>(:9090)"]
+    grafana["Grafana<br/>(dashboards, :3344)"]
+    aliases["Aliases UI<br/>/aliases"]
+    data[("data/<br/>device-aliases.json")]
+
+    router -- "login + status/devicelist" --> exporter
+    exporter -- "/metrics (scraped every 30s)" --> prom
+    prom -- "PromQL data source" --> grafana
+    aliases --> exporter
+    exporter <--> data
 ```
 
 ## Part 1: User Guide
@@ -158,4 +170,3 @@ Open the local management page at <http://localhost:3030/aliases> to assign cust
 - Custom names survive `docker compose up -d --build` as long as the `./data` mount remains.
 - Grafana shows `alias (router_name)` when an alias exists; otherwise it shows the router-provided name.
 - Changing a device name creates a new Prometheus time series identity, so historical graphs may look discontinuous around the rename.
-
