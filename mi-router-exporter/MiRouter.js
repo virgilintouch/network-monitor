@@ -56,13 +56,13 @@ class MiRouter {
             try {
                 const response = await fetch(`http://${this.url}/cgi-bin/luci/api/xqsystem/login`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
                         username: 'admin',
                         password,
-                        logtype: 2,
-                        nonce
-                    }),
+                        logtype: '2',
+                        nonce,
+                    }).toString(),
                     timeout: 15000,
                 });
 
@@ -70,6 +70,10 @@ class MiRouter {
 
                 if (!response.ok) {
                     throw new Error(`Login failed: ${data.error || response.statusText}`);
+                }
+
+                if (!data.token) {
+                    throw new Error(`Login failed: ${data.msg || data.error || `code ${data.code}`}`);
                 }
 
                 this.token = data.token;

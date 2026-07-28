@@ -32,6 +32,29 @@ test('compose uses project-local environment and log paths', () => {
     assert.doesNotMatch(compose, /\.\.\/\.env|\.\.\/logs/);
 });
 
+test('login sends form-urlencoded body and rejects missing token', async () => {
+    let seen = null;
+    const fetch = async (url, options = {}) => {
+        seen = { url, options };
+        return {
+            ok: true,
+            async json() {
+                return { code: 401, msg: 'Invalid token' };
+            },
+        };
+    };
+    const MiRouter = loadMiRouter(fetch);
+    const router = new MiRouter({ password: 'secret', deviceId: 'test-device', retryDelayMs: 0 });
+    await assert.rejects(() => router.login(), /Invalid token|Login failed|token/i);
+    assert.equal(seen.options.headers['Content-Type'], 'application/x-www-form-urlencoded');
+    assert.equal(typeof seen.options.body, 'string');
+    assert.match(seen.options.body, /username=admin/);
+    assert.match(seen.options.body, /password=/);
+    assert.match(seen.options.body, /logtype=2/);
+    assert.match(seen.options.body, /nonce=/);
+    assert.equal(router.token, null);
+});
+
 test('login retries transient failures up to three attempts', async () => {
     let attempts = 0;
     const fetch = async () => {
