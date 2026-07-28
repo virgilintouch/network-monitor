@@ -23,3 +23,6 @@ docker-compose.override.yml
 
 # Device alias persistence (keep directory, ignore content)
 data/device-aliases.json
+
+# Agent task scratch files
+tmp/
