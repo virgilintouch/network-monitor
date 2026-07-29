@@ -25,8 +25,14 @@ function lookupAlias(aliases, mac) {
     }
 }
 
-function deviceLabels(device, aliases = {}) {
-    const routerName = device.devname || device.name || '';
+function deviceLabels(device, aliases = {}, routerNameByMac = {}) {
+    let macKey = '';
+    try {
+        macKey = normalizeMac(device.mac || '');
+    } catch {
+        macKey = '';
+    }
+    const routerName = (macKey ? routerNameByMac[macKey] : '') || device.devname || device.name || '';
     const displayName = formatDisplayName({
         routerName,
         alias: lookupAlias(aliases, device.mac),
@@ -34,13 +40,13 @@ function deviceLabels(device, aliases = {}) {
     return `mac="${escapeLabelValue(device.mac || '')}",name="${escapeLabelValue(displayName)}",ip="${escapeLabelValue(device._ip || '')}",router_name="${escapeLabelValue(routerName)}"`;
 }
 
-function renderDeviceMetric(name, help, type, devices, field, aliases = {}) {
+function renderDeviceMetric(name, help, type, devices, field, aliases = {}, routerNameByMac = {}) {
     const lines = [
         `# HELP ${name} ${help}`,
         `# TYPE ${name} ${type}`,
     ];
     for (const device of devices) {
-        lines.push(`${name}{${deviceLabels(device, aliases)}} ${metricValue(device[field])}`);
+        lines.push(`${name}{${deviceLabels(device, aliases, routerNameByMac)}} ${metricValue(device[field])}`);
     }
     return lines.join('\n');
 }
@@ -52,6 +58,21 @@ function render(stats = {}, self = {}, aliases = {}) {
     const cpu = stats.cpu || {};
     const count = stats.count || {};
     const wan = stats.wan || {};
+
+    const routerNameByMac = {};
+    for (const device of deviceList) {
+        let macKey = '';
+        try {
+            macKey = normalizeMac(device.mac || '');
+        } catch {
+            macKey = '';
+        }
+        if (!macKey) continue;
+        const routerName = device.name || device.devname || '';
+        if (routerName) {
+            routerNameByMac[macKey] = routerName;
+        }
+    }
 
     const sections = [
         [
@@ -114,13 +135,17 @@ function render(stats = {}, self = {}, aliases = {}) {
             '# TYPE mi_router_wan_max_upspeed gauge',
             `mi_router_wan_max_upspeed ${metricValue(wan.maxuploadspeed)}`,
         ].join('\n'),
-        renderDeviceMetric('mi_router_device_upload', 'Router device upload', 'gauge', devices, 'upload', aliases),
-        renderDeviceMetric('mi_router_device_download', 'Router device download', 'gauge', devices, 'download', aliases),
-        renderDeviceMetric('mi_router_device_upspeed', 'Router device upspeed', 'gauge', devices, 'upspeed', aliases),
-        renderDeviceMetric('mi_router_device_downspeed', 'Router device downspeed', 'gauge', devices, 'downspeed', aliases),
-        renderDeviceMetric('mi_router_device_max_upspeed', 'Router device max upload speed', 'gauge', devices, 'maxuploadspeed', aliases),
-        renderDeviceMetric('mi_router_device_max_downspeed', 'Router device max download speed', 'gauge', devices, 'maxdownloadspeed', aliases),
-        renderDeviceMetric('mi_router_device_online', 'Router device online', 'gauge', devices, 'online', aliases),
+        // Keep legacy gauge names for backward compatibility.
+        renderDeviceMetric('mi_router_device_upload', 'Router device upload', 'gauge', devices, 'upload', aliases, routerNameByMac),
+        renderDeviceMetric('mi_router_device_download', 'Router device download', 'gauge', devices, 'download', aliases, routerNameByMac),
+        // Canonical counter names used by increase()/rate() queries.
+        renderDeviceMetric('mi_router_device_upload_total', 'Router device upload total', 'counter', devices, 'upload', aliases, routerNameByMac),
+        renderDeviceMetric('mi_router_device_download_total', 'Router device download total', 'counter', devices, 'download', aliases, routerNameByMac),
+        renderDeviceMetric('mi_router_device_upspeed', 'Router device upspeed', 'gauge', devices, 'upspeed', aliases, routerNameByMac),
+        renderDeviceMetric('mi_router_device_downspeed', 'Router device downspeed', 'gauge', devices, 'downspeed', aliases, routerNameByMac),
+        renderDeviceMetric('mi_router_device_max_upspeed', 'Router device max upload speed', 'gauge', devices, 'maxuploadspeed', aliases, routerNameByMac),
+        renderDeviceMetric('mi_router_device_max_downspeed', 'Router device max download speed', 'gauge', devices, 'maxdownloadspeed', aliases, routerNameByMac),
+        renderDeviceMetric('mi_router_device_online', 'Router device online', 'gauge', devices, 'online', aliases, routerNameByMac),
     ];
 
     const infoLines = [

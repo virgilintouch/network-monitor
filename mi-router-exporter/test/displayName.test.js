@@ -11,12 +11,12 @@ test('normalizeMac rejects invalid MAC', () => {
   assert.throws(() => normalizeMac('bad'), /Invalid MAC/);
 });
 
-test('formatDisplayName uses alias (routerName) when alias present', () => {
-  assert.equal(formatDisplayName({ routerName: 'iPhone', alias: '客厅电视' }), '客厅电视 (iPhone)');
+test('formatDisplayName uses alias only when alias present', () => {
+  assert.equal(formatDisplayName({ routerName: 'iPhone', alias: '客厅电视' }), '客厅电视');
 });
 
-test('formatDisplayName falls back to unknown inside parentheses when router name empty', () => {
-  assert.equal(formatDisplayName({ routerName: '', alias: '客厅电视' }), '客厅电视 (unknown)');
+test('formatDisplayName ignores empty router name when alias present', () => {
+  assert.equal(formatDisplayName({ routerName: '', alias: '客厅电视' }), '客厅电视');
 });
 
 test('formatDisplayName returns router name when alias absent', () => {

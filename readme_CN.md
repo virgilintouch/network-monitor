@@ -93,9 +93,33 @@ docker compose down
 - 路由器 CPU、内存、温度、运行时间和已连接设备数量
 - WAN 上下行速度、峰值速度与累计流量计数器
 - 单设备的流量、速度、在线状态、MAC 地址、名称，以及路由器返回时的 IP 地址
+- 规范累计计数器 `mi_router_device_download_total` / `mi_router_device_upload_total`（同时保留旧 gauge 名称以兼容）
 - `mi_router_exporter_*` 前缀的导出器自身指标，包括登录成功/失败、路由器 API 错误、抓取错误、最近一次抓取耗时和最近成功抓取时间
 
 `/debug` 默认不可访问，只有设置 `ENABLE_DEBUG=true` 后才会开放；排障完成后请重新关闭。
+
+### 仪表盘
+
+预置 Grafana 仪表盘位于 `grafana/dashboards/`，启动后自动加载。
+
+#### 家庭网络监控（`home-network-monitor`）
+
+- 设备实时上下行面板使用无填充多折线（`fillOpacity: 0`），便于多设备对比。
+- `全设备总带宽趋势（下载 / 上传）` 以两条正值纯曲线展示设备合计下载/上传。
+- TOP 10 面板改为**时间窗口增量**排名（`increase(...[$__range])`），会随 Grafana 顶部时间范围变化。
+- 饼图展示当前各设备上下行带宽占比（仅显示速率 `> 0` 的设备）。
+- `设备带宽覆盖率` 用设备合计速率对比 WAN 速率：
+  - 分子分母都做 5 分钟平滑
+  - 低流量屏蔽：WAN 平均速率 `< 200 KB/s` 时不画点
+  - 显示上限：`clamp_max(..., 200)`，纵轴最高到 200%
+  - 高于 100% 多半是设备侧与 WAN 侧采样抖动，不代表宽带套餐利用率
+
+#### 设备分时流量（`device-traffic-interval`）
+
+- 统计粒度选项包含 `5m,10m,30m,1h,3h,6h,1d`。
+- 分时上下行使用无填充多设备折线，并采用 `palette-classic` 配色。
+- 查询使用规范计数器 `mi_router_device_download_total` / `mi_router_device_upload_total`，避免 Prometheus 对 `increase()` 的命名告警。
+- 汇总表列顺序为：设备名称、IP 地址、Mac地址、下载量、上传量。
 
 ### 故障排查
 
@@ -150,6 +174,8 @@ curl -fsS http://localhost:3030/metrics | grep '^mi_router'
 - 路由器令牌缓存 24 小时；状态请求失败时会清除令牌、重新认证，并重试完整的状态/设备列表流程。
 - 在渲染 Prometheus 输出前会转义设备标签。新增标签或指标时必须保留此行为。
 - `mi_router_wan_download` 和 `mi_router_wan_upload` 是 counter 类型；修改采集逻辑时必须保持其指标类型。
+- `increase()`/`rate()` 查询优先使用 `mi_router_device_download_total` / `mi_router_device_upload_total`；旧名 `mi_router_device_download` / `mi_router_device_upload` 作为兼容 gauge 保留。
+- 带宽覆盖率面板应对分子分母分别平滑，屏蔽低流量 WAN，并在显示层限幅，避免采样抖动造成尖峰。
 - 稳定设备 ID 和导出器日志存储在挂载的 `./logs` 目录中，因此容器重建后仍可保留。
 - 日志必须保持尽力而为，绝不能导致指标请求失败；不要在请求路径中添加同步文件 I/O。
 - `/debug` 必须继续由 `ENABLE_DEBUG=true` 控制，因为它可能暴露来源于路由器的设备详情。
@@ -168,5 +194,5 @@ ISC
 
 - 别名保存在主机上的 `./data/device-aliases.json`（已挂载进 exporter 容器）。
 - 只要保留 `./data` 挂载，执行 `docker compose up -d --build` 后自定义名仍会保留。
-- Grafana 有别名时显示 `自定义名 (路由器原名)`；没有别名时显示路由器原名。
+- Grafana 有别名时优先显示别名，没有别名时显示路由器原名；图例统一为 `名称 (IP)`。
 - 修改设备名会形成新的 Prometheus 时间序列，历史曲线在改名附近可能看起来不连续。

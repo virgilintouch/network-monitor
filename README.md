@@ -93,9 +93,33 @@ The exporter collects:
 - Router CPU, memory, temperature, uptime, and connected-device counts
 - WAN upload/download speeds, peak speeds, and cumulative counters
 - Per-device traffic, speed, online state, MAC address, name, and IP address where the router supplies it
+- Canonical per-device cumulative counters `mi_router_device_download_total` / `mi_router_device_upload_total` (plus legacy gauge names for compatibility)
 - Exporter health signals under `mi_router_exporter_*`, including login successes/failures, router API errors, scrape errors, the last scrape duration, and the last successful scrape timestamp
 
 The `/debug` endpoint is deliberately unavailable unless `ENABLE_DEBUG=true`. Disable it again after diagnosis.
+
+### Dashboards
+
+Provisioned Grafana dashboards live under `grafana/dashboards/` and are loaded automatically.
+
+#### Home Network Monitor (`home-network-monitor`)
+
+- Per-device realtime upload/download charts use unfilled multi-series lines (`fillOpacity: 0`) so each selected device stays visually distinct.
+- `全设备总带宽趋势（下载 / 上传）` shows aggregate device download and upload as two plain positive curves.
+- TOP 10 panels are **time-window incremental** rankings (`increase(...[$__range])`), so they change with Grafana's selected time range.
+- Pie charts show current per-device upload/download bandwidth share (devices with rate `> 0` only).
+- `设备带宽覆盖率` compares summed device rates against WAN rates:
+  - 5-minute smoothing on both numerator and denominator
+  - low-flow shield: hide points when WAN average rate `< 200 KB/s`
+  - display clamp: `clamp_max(..., 200)` so the axis stays readable up to 200%
+  - values above 100% usually mean sampling jitter between device and WAN counters, not broadband plan capacity
+
+#### Device Traffic Interval (`device-traffic-interval`)
+
+- Interval bucket options include `5m,10m,30m,1h,3h,6h,1d`.
+- Interval upload/download charts use unfilled multi-device lines with `palette-classic` coloring.
+- Queries use canonical counters `mi_router_device_download_total` / `mi_router_device_upload_total` to avoid Prometheus `increase()` naming warnings.
+- Summary table columns are ordered as: device name, IP address, MAC address, download, upload.
 
 ### Troubleshooting
 
@@ -150,6 +174,8 @@ curl -fsS http://localhost:3030/metrics | grep '^mi_router'
 - Router tokens are cached for 24 hours; status failures clear the token, reauthenticate, and retry the complete status/device-list flow.
 - Device labels are escaped before rendering Prometheus output. Preserve this behavior when adding labels or metrics.
 - `mi_router_wan_download` and `mi_router_wan_upload` are counters; preserve their metric type when changing collection logic.
+- Prefer `mi_router_device_download_total` / `mi_router_device_upload_total` for `increase()`/`rate()` queries. Keep legacy `mi_router_device_download` / `mi_router_device_upload` gauge names for backward compatibility.
+- Bandwidth coverage panels should smooth numerator and denominator separately, shield low WAN flow, and clamp display when needed to avoid sampling-jitter spikes.
 - The stable device ID and exporter logs are stored in the mounted `./logs` directory so they survive container recreation.
 - Logging must remain best-effort: it must never make a metrics request fail. Avoid synchronous file I/O on the request path.
 - Keep `/debug` gated behind `ENABLE_DEBUG=true`; it can expose router-derived device details.
@@ -168,5 +194,5 @@ Open the local management page at <http://localhost:3030/aliases> to assign cust
 
 - Aliases are stored in `./data/device-aliases.json` on the host (mounted into the exporter container).
 - Custom names survive `docker compose up -d --build` as long as the `./data` mount remains.
-- Grafana shows `alias (router_name)` when an alias exists; otherwise it shows the router-provided name.
+- Grafana shows the custom alias when present; otherwise it shows the router-provided name. Panel legends use `name (ip)` (alias preferred over router name).
 - Changing a device name creates a new Prometheus time series identity, so historical graphs may look discontinuous around the rename.
