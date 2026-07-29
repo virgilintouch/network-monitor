@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>家庭网络拓扑 — 协议/端口分析方案</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --card: #1a2233;
+    --line: #4a5a78;
+    --new: #f5a623;
+    --mirror: #e05c6e;
+    --text: #e8edf7;
+    --muted: #93a1bd;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 48px;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+  .diagram { width: 100%; max-width: 960px; }
+  svg { width: 100%; height: auto; display: block; }
+
+  .node rect {
+    fill: var(--card);
+    stroke: var(--line);
+    stroke-width: 1.5;
+    rx: 12;
+  }
+  .node.new rect { stroke: var(--new); stroke-width: 2; }
+  .node text { fill: var(--text); font-size: 15px; font-weight: 600; }
+  .node text.desc { fill: var(--muted); font-size: 12px; font-weight: 400; }
+
+  .link { stroke: var(--line); stroke-width: 2.5; fill: none; }
+  .link.new { stroke: var(--new); }
+  .link.mirror { stroke: var(--mirror); stroke-width: 2.5; stroke-dasharray: 7 6; }
+  .link.wifi { stroke: var(--line); stroke-dasharray: 2 5; }
+
+  .label { font-size: 12px; fill: var(--muted); }
+  .label.new { fill: var(--new); }
+  .label.mirror { fill: var(--mirror); }
+
+  .legend {
+    margin-top: 20px;
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .legend .item { display: flex; align-items: center; gap: 8px; }
+  .legend .swatch { width: 34px; height: 0; border-top: 3px solid var(--line); }
+  .legend .swatch.new { border-color: var(--new); }
+  .legend .swatch.mirror { border-top-style: dashed; border-color: var(--mirror); }
+  .legend .swatch.wifi { border-top-style: dotted; }
+  .legend .box {
+    width: 14px; height: 14px; border-radius: 4px;
+    background: var(--card); border: 2px solid var(--new);
+  }
+
+  .notes {
+    max-width: 960px;
+    margin-top: 28px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 22px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--muted);
+  }
+  .notes strong { color: var(--text); }
+  .notes ol { margin: 8px 0 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+
+<h1>家庭网络拓扑 — 协议/端口分析方案</h1>
+<p class="sub">现有连线一根不动，只新增交换机和采集盒（橙色部分）</p>
+
+<div class="diagram">
+<svg viewBox="0 0 960 560" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- ===== links ===== -->
+  <!-- Internet -> 光猫 -->
+  <path class="link" d="M 480 78 V 110"/>
+  <!-- 光猫 -> 主路由 -->
+  <path class="link" d="M 480 176 V 208"/>
+  <!-- 主路由 -> 交换机 (new uplink) -->
+  <path class="link new" d="M 480 274 V 318"/>
+  <text class="label new" x="494" y="300">新增上联线</text>
+
+  <!-- 交换机 -> 子节点1 (existing backhaul, re-plugged) -->
+  <path class="link" d="M 410 384 C 340 420, 250 430, 190 462"/>
+  <text class="label" x="212" y="418">原有线回程</text>
+  <!-- 交换机 -> 子节点2 -->
+  <path class="link" d="M 550 384 C 620 420, 710 430, 770 462"/>
+  <text class="label" x="656" y="418">原有线回程</text>
+
+  <!-- 交换机镜像口 -> 采集盒 -->
+  <path class="link mirror" d="M 480 384 V 462"/>
+  <text class="label mirror" x="494" y="428">镜像口（流量复制）</text>
+
+  <!-- 采集盒 -> Prometheus (指标走正常网络) -->
+  <path class="link wifi" d="M 480 528 C 480 545, 300 548, 220 548 C 150 548, 120 520, 120 495"/>
+  <text class="label" x="180" y="562">聚合指标经正常网络上报 Prometheus</text>
+
+  <!-- Wi-Fi 设备挂子节点 -->
+  <path class="link wifi" d="M 120 495 V 462"/>
+  <path class="link wifi" d="M 840 495 V 462"/>
+
+  <!-- ===== nodes ===== -->
+  <g class="node">
+    <rect x="400" y="30" width="160" height="48"/>
+    <text x="480" y="59" text-anchor="middle">🌐 Internet</text>
+  </g>
+
+  <g class="node">
+    <rect x="390" y="110" width="180" height="66"/>
+    <text x="480" y="138" text-anchor="middle">光猫（ISP）</text>
+    <text class="desc" x="480" y="160" text-anchor="middle">位置与模式均不变</text>
+  </g>
+
+  <g class="node">
+    <rect x="390" y="208" width="180" height="66"/>
+    <text x="480" y="236" text-anchor="middle">主路由 AX3000</text>
+    <text class="desc" x="480" y="258" text-anchor="middle">Wi-Fi 关闭，仅做网关</text>
+  </g>
+
+  <g class="node new">
+    <rect x="380" y="318" width="200" height="66"/>
+    <text x="480" y="346" text-anchor="middle">网管交换机（新增）</text>
+    <text class="desc" x="480" y="368" text-anchor="middle">上联口双向流量 → 镜像口</text>
+  </g>
+
+  <g class="node">
+    <rect x="80" y="462" width="200" height="66"/>
+    <text x="180" y="490" text-anchor="middle">子节点 1 AX3000</text>
+    <text class="desc" x="180" y="512" text-anchor="middle">Wi-Fi 设备挂这里</text>
+  </g>
+
+  <g class="node">
+    <rect x="680" y="462" width="200" height="66"/>
+    <text x="780" y="490" text-anchor="middle">子节点 2 AX3000</text>
+    <text class="desc" x="780" y="512" text-anchor="middle">Wi-Fi 设备挂这里</text>
+  </g>
+
+  <g class="node new">
+    <rect x="380" y="462" width="200" height="66"/>
+    <text x="480" y="490" text-anchor="middle">采集盒（新增）</text>
+    <text class="desc" x="480" y="512" text-anchor="middle">抓包聚合 → /metrics</text>
+  </g>
+
+</svg>
+</div>
+
+<div class="legend">
+  <div class="item"><span class="swatch"></span>现有网线（不动）</div>
+  <div class="item"><span class="swatch new"></span>新增网线</div>
+  <div class="item"><span class="swatch mirror"></span>镜像流量（单向复制）</div>
+  <div class="item"><span class="swatch wifi"></span>无线 / 指标上报</div>
+  <div class="item"><span class="box"></span>新增设备</div>
+</div>
+
+<div class="notes">
+  <strong>接线步骤（断网时间约 1 分钟）</strong>
+  <ol>
+    <li>两台子节点的回程网线从主路由 LAN 口拔下，插到交换机普通口</li>
+    <li>交换机用一根新网线连回主路由 LAN 口（上联口）</li>
+    <li>采集盒插到交换机的镜像目标口，在交换机管理页把上联口双向流量镜像给它</li>
+  </ol>
+  <strong>覆盖范围</strong>：主路由未开 Wi-Fi，全部设备挂在两台子节点或交换机下，所有上网流量都经过交换机上联口 —— 全网覆盖，无盲区。唯一看不到的是同一子节点内两台设备的互传流量。
+</div>
+
+</body>
+</html>
