@@ -9,7 +9,7 @@ function normalizeMac(input) {
 function formatDisplayName({ routerName, alias }) {
   const trimmedAlias = String(alias ?? '').trim();
   if (trimmedAlias) {
-    return `${trimmedAlias} (${routerName || 'unknown'})`;
+    return trimmedAlias;
   }
   return routerName || '';
 }

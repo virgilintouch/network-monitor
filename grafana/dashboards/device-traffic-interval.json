@@ -25,7 +25,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic-by-name"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
@@ -35,8 +35,8 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "scheme",
+            "fillOpacity": 0,
+            "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
@@ -105,9 +105,9 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum by (name) (increase(mi_router_device_download{name!=\"Others\", name=~\"${device}\"}[$bucket]))",
+          "expr": "sum by (mac, name, ip) (increase(mi_router_device_download_total{name!=\"Others\",name=~\"${device}\"}[$bucket]))",
           "interval": "$bucket",
-          "legendFormat": "{{name}}",
+          "legendFormat": "{{name}} ({{ip}})",
           "refId": "A"
         }
       ],
@@ -122,7 +122,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic-by-name"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
@@ -132,8 +132,8 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "scheme",
+            "fillOpacity": 0,
+            "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
@@ -202,9 +202,9 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum by (name) (increase(mi_router_device_upload{name!=\"Others\", name=~\"${device}\"}[$bucket]))",
+          "expr": "sum by (mac, name, ip) (increase(mi_router_device_upload_total{name!=\"Others\",name=~\"${device}\"}[$bucket]))",
           "interval": "$bucket",
-          "legendFormat": "{{name}}",
+          "legendFormat": "{{name}} ({{ip}})",
           "refId": "A"
         }
       ],
@@ -268,14 +268,15 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "topk(10, sum by (name) (increase(mi_router_device_download{name!=\"Others\", name=~\"${device}\"}[$__range])))",
+          "expr": "sort_desc(topk(10, sum by (mac, name, ip) (increase(mi_router_device_download_total{name!=\"Others\",name=~\"${device}\"}[$__range]))))",
           "instant": true,
-          "legendFormat": "{{name}}",
+          "legendFormat": "{{name}} ({{ip}})",
           "refId": "A"
         }
       ],
       "title": "🏆 时间段内下载总量 TOP 10",
-      "type": "bargauge"
+      "type": "bargauge",
+      "transformations": []
     },
     {
       "datasource": {
@@ -334,14 +335,15 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "topk(10, sum by (name) (increase(mi_router_device_upload{name!=\"Others\", name=~\"${device}\"}[$__range])))",
+          "expr": "sort_desc(topk(10, sum by (mac, name, ip) (increase(mi_router_device_upload_total{name!=\"Others\",name=~\"${device}\"}[$__range]))))",
           "instant": true,
-          "legendFormat": "{{name}}",
+          "legendFormat": "{{name}} ({{ip}})",
           "refId": "A"
         }
       ],
       "title": "🏆 时间段内上传总量 TOP 10",
-      "type": "bargauge"
+      "type": "bargauge",
+      "transformations": []
     },
     {
       "datasource": {
@@ -419,10 +421,10 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum by (name) (increase(mi_router_device_download{name!=\"Others\", name=~\"${device}\"}[$__range]))",
+          "expr": "sum by (mac, name, ip) (increase(mi_router_device_download_total{name!=\"Others\",name=~\"${device}\"}[$__range]))",
           "format": "table",
           "instant": true,
-          "legendFormat": "",
+          "legendFormat": "{{name}} ({{ip}})",
           "refId": "A"
         },
         {
@@ -430,10 +432,10 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum by (name) (increase(mi_router_device_upload{name!=\"Others\", name=~\"${device}\"}[$__range]))",
+          "expr": "sum by (mac, name, ip) (increase(mi_router_device_upload_total{name!=\"Others\",name=~\"${device}\"}[$__range]))",
           "format": "table",
           "instant": true,
-          "legendFormat": "",
+          "legendFormat": "{{name}} ({{ip}})",
           "refId": "B"
         }
       ],
@@ -451,13 +453,27 @@
           "options": {
             "excludeByName": {
               "Time 1": true,
-              "Time 2": true
+              "Time 2": true,
+              "ip 2": true,
+              "mac 2": true,
+              "IP 2": true,
+              "MAC 2": true
             },
-            "indexByName": {},
+            "indexByName": {
+              "设备名称": 0,
+              "IP 地址": 1,
+              "Mac地址": 2,
+              "下载量": 3,
+              "上传量": 4
+            },
             "renameByName": {
               "name": "设备名称",
               "Value #A": "下载量",
-              "Value #B": "上传量"
+              "Value #B": "上传量",
+              "ip 1": "IP 地址",
+              "mac 1": "Mac地址",
+              "ip": "IP 地址",
+              "mac": "Mac地址"
             }
           }
         }
@@ -515,7 +531,7 @@
             "value": "1d"
           }
         ],
-        "query": "10m,30m,1h,3h,6h,1d",
+        "query": "5m,10m,30m,1h,3h,6h,1d",
         "skipUrlSync": false,
         "type": "custom"
       },
@@ -555,6 +571,6 @@
   "timezone": "browser",
   "title": "⏱️ 设备分时流量",
   "uid": "device-traffic-interval",
-  "version": 1,
+  "version": 3,
   "refresh": "1m"
 }

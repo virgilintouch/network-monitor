@@ -148,7 +148,7 @@ test('GET /api/devices merges router devices with aliases into displayName', asy
     assert.equal(res.json[0].online, true);
     assert.equal(res.json[0].routerName, 'iPhone');
     assert.equal(res.json[0].alias, '客厅电视');
-    assert.equal(res.json[0].displayName, '客厅电视 (iPhone)');
+    assert.equal(res.json[0].displayName, '客厅电视');
   });
 });
 
